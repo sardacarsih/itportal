@@ -10,7 +10,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 		error(403, 'Permintaan ditolak. Muat ulang halaman dari alamat portal.');
 	event.locals.user =
 		path === '/healthz' ? null : await sessionUser(event.cookies.get('portal_session'));
-	if (path !== '/login' && path !== '/healthz' && !event.locals.user) redirect(303, '/login');
+	const isPublic = path === '/login' || path === '/healthz' || path.startsWith('/auth/');
+	if (!isPublic && !event.locals.user) redirect(303, '/login');
+	if (
+		event.locals.user &&
+		(!event.locals.user.department || event.locals.user.department.trim() === '') &&
+		path !== '/onboarding' &&
+		path !== '/logout'
+	)
+		redirect(303, '/onboarding');
 	if (path.startsWith('/admin') && event.locals.user?.role !== 'ADMIN')
 		error(403, 'Hanya Admin yang dapat mengakses administrasi.');
 	const response = await resolve(event);

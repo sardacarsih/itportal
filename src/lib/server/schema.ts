@@ -28,9 +28,10 @@ export const users = pgTable('users', {
 	department: text().notNull().default(''),
 	role: userRole().notNull(),
 	passwordHash: text('password_hash').notNull(),
+	googleSub: text('google_sub'),
 	active: boolean().notNull().default(true),
 	createdAt: time('created_at').notNull().defaultNow()
-});
+	}, (t) => [uniqueIndex('users_google_sub_unique').on(t.googleSub)]);
 export const teams = pgTable('teams', {
 	id: uuid().primaryKey().defaultRandom(),
 	name: text().notNull().unique()

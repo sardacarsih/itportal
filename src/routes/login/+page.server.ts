@@ -4,7 +4,12 @@ import { authenticate, createSession } from '$lib/server/auth';
 import { production } from '$lib/server/config';
 import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = ({ locals }) => {
-	if (locals.user) redirect(303, '/');
+	if (locals.user) {
+		if (!locals.user.department || locals.user.department.trim() === '') {
+			redirect(303, '/onboarding');
+		}
+		redirect(303, '/');
+	}
 };
 export const actions: Actions = {
 	default: async ({ request, cookies, getClientAddress }) => {

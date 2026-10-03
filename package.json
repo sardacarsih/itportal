@@ -9,6 +9,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"test": "bun scripts/test.ts",
 		"test:browser": "bun tests/browser.ts",
+		"test:google": "bun tests/browser-google-flow.ts",
 		"build": "vite build",
 		"start": "bun ./build/index.js",
 		"db:migrate": "bun scripts/migrate.ts",
