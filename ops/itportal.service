@@ -1,0 +1,29 @@
+[Unit]
+Description=Direktorat IT service portal (Bun)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=itportal
+Group=itportal
+WorkingDirectory=/srv/itportal/current
+EnvironmentFile=/etc/itportal/portal.env
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=5174
+Environment=BODY_SIZE_LIMIT=55M
+ExecStart=/opt/bun/bin/bun ./build/index.js
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=45
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/itportal/uploads
+
+[Install]
+WantedBy=multi-user.target

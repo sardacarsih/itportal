@@ -1,0 +1,11 @@
+node_modules/
+.svelte-kit/
+build/
+.env
+.env.*
+!.env.example
+.local/
+artifacts/
+*.log
+BUILD_PROMPT.txt
+ops/production-deployment.md

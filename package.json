@@ -1,0 +1,50 @@
+{
+	"name": "direktorat-it-portal",
+	"private": true,
+	"type": "module",
+	"version": "1.0.0",
+	"packageManager": "bun@1.4.2",
+	"scripts": {
+		"dev": "vite dev --host 127.0.0.1",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"test": "bun scripts/test.ts",
+		"test:browser": "bun tests/browser.ts",
+		"build": "vite build",
+		"start": "bun ./build/index.js",
+		"db:migrate": "bun scripts/migrate.ts",
+		"db:seed": "bun scripts/seed.ts",
+		"db:local": "bun scripts/local-db.ts",
+		"preview:local": "bun scripts/preview.ts",
+		"test:production": "bun scripts/production-smoke.ts",
+		"format": "prettier --write src scripts tests *.js *.ts *.json",
+		"test:admin-browser": "bun tests/admin-browser.ts",
+		"measure": "bun scripts/measure.ts",
+		"uploads:check": "bun scripts/reconcile-uploads.ts"
+	},
+	"dependencies": {
+		"@lucide/svelte": "^1.51.0",
+		"@sveltejs/kit": "2",
+		"drizzle-orm": "^0.45.3",
+		"pdf-lib": "^1.17.1",
+		"postgres": "^3.4.9",
+		"sharp": "^0.35.5",
+		"svelte": "^5.57.1",
+		"zod": "^4.6.5"
+	},
+	"devDependencies": {
+		"@axe-core/playwright": "^4.13.0",
+		"@sveltejs/vite-plugin-svelte": "6",
+		"@tailwindcss/vite": "^4.3.3",
+		"@types/bun": "^1.4.2",
+		"drizzle-kit": "^0.31.11",
+		"lighthouse": "^13.5.0",
+		"playwright": "^1.63.0",
+		"prettier": "^3.9.9",
+		"prettier-plugin-svelte": "^4.1.1",
+		"svelte-adapter-bun": "^1.0.1",
+		"svelte-check": "^4.7.6",
+		"tailwindcss": "^4.3.3",
+		"typescript": "5",
+		"vite": "7"
+	}
+}
