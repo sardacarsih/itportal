@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { uploadDir } from './config';
 import { PortalError } from './validation';
 import sharp from 'sharp';
-import { PDFDocument, PDFDict, PDFName } from 'pdf-lib';
+import { PDFDocument, PDFDict, PDFArray, PDFName } from 'pdf-lib';
 export interface Staged {
 	name: string;
 	storage: string;
@@ -11,6 +11,55 @@ export interface Staged {
 	size: number;
 	staged: string;
 	final: string;
+}
+// Action types that execute code, launch programs, or move data out of the reader.
+const activeActions = new Set([
+	'JavaScript',
+	'Launch',
+	'GoToR',
+	'GoToE',
+	'SubmitForm',
+	'ImportData',
+	'Rendition',
+	'Movie',
+	'Sound',
+	'GoTo3DView'
+]);
+// Dict keys that exist only to carry a script or an embedded payload.
+const activeKeys = new Set(['JS', 'JavaScript', 'DocJavaScript', 'XFA', 'RichMedia', 'EF']);
+// Annotation subtypes that host a media player or an embedded document.
+const activeSubtypes = new Set(['Movie', 'Sound', 'Screen', '3D', 'RichMedia']);
+// Deliberately not blocked: ObjStm (compression used by nearly every modern PDF),
+// URI (plain hyperlinks), AcroForm (fillable forms), OpenAction/AA and the
+// EmbeddedFiles name tree. Those are containers, not payloads -- Acrobat emits an
+// empty /Names/EmbeddedFiles tree and a destination-array /OpenAction in ordinary
+// documents. Their contents are still walked, so a script inside them is caught.
+//
+// Recurses into directly-embedded dicts and arrays, which enumerateIndirectObjects
+// does not visit. Indirect references are skipped on purpose: every one of them is
+// already visited at the top level, and following them here could cycle.
+export function hasActiveContent(value: unknown, depth = 0): boolean {
+	if (depth > 32) return true;
+	if (value instanceof PDFDict) {
+		for (const [key, entry] of value.entries()) {
+			const name = key.decodeText();
+			if (activeKeys.has(name)) return true;
+			if (entry instanceof PDFName) {
+				const kind = entry.decodeText();
+				if (
+					(name === 'S' && activeActions.has(kind)) ||
+					(name === 'Subtype' && activeSubtypes.has(kind))
+				)
+					return true;
+			}
+			if (hasActiveContent(entry, depth + 1)) return true;
+		}
+		return false;
+	}
+	if (value instanceof PDFArray) {
+		for (let i = 0; i < value.size(); i++) if (hasActiveContent(value.get(i), depth + 1)) return true;
+	}
+	return false;
 }
 export function identify(bytes: Uint8Array): string {
 	const b = Buffer.from(bytes);
@@ -29,20 +78,7 @@ export function identify(bytes: Uint8Array): string {
 		b[b.length - 1] === 217
 	)
 		return 'image/jpeg';
-	if (text.startsWith('%PDF-')) {
-		if (
-			!/%%EOF\s*$/.test(text) ||
-			/\/(?:JavaScript|JS|Launch|OpenAction|AA|RichMedia|EmbeddedFile|XFA|ObjStm|AcroForm|GoToR|GoToE|SubmitForm|ImportData|URI|Rendition|Movie|Sound|3D)\b/i.test(
-				text
-			) ||
-			/#(?:[0-9a-f]{2})/i.test(text)
-		)
-			throw new PortalError(
-				400,
-				'PDF aktif atau kompleks tidak didukung. Ekspor sebagai PDF sederhana.'
-			);
-		return 'application/pdf';
-	}
+	if (text.startsWith('%PDF-')) return 'application/pdf';
 	if (
 		!text.includes('\ufffd') &&
 		!/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(text) &&
@@ -82,35 +118,13 @@ export async function stageUploads(files: File[]): Promise<Staged[]> {
 						ignoreEncryption: false,
 						throwOnInvalidObject: true
 					});
-					const unsafe = new Set([
-						'JavaScript',
-						'JS',
-						'Launch',
-						'OpenAction',
-						'AA',
-						'RichMedia',
-						'EmbeddedFile',
-						'XFA',
-						'AcroForm',
-						'GoToR',
-						'SubmitForm',
-						'ImportData'
-					]);
-					for (const [, object] of pdf.context.enumerateIndirectObjects()) {
-						if (object instanceof PDFDict)
-							for (const [key, value] of object.entries()) {
-								if (
-									unsafe.has(key.decodeText()) ||
-									(value instanceof PDFName && unsafe.has(value.decodeText()))
-								)
-									throw new Error('active content');
-							}
-					}
 					if (!pdf.getPageCount()) throw new Error('empty PDF');
+					for (const [, object] of pdf.context.enumerateIndirectObjects())
+						if (hasActiveContent(object)) throw new Error('active content');
 				} catch {
 					throw new PortalError(
 						400,
-						'PDF rusak, terenkripsi, atau berisi konten aktif. Ekspor PDF sederhana.'
+						'PDF rusak, terenkripsi, atau memuat skrip/konten aktif. Simpan ulang tanpa skrip.'
 					);
 				}
 			}
