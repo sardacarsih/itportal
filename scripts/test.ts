@@ -30,7 +30,11 @@ const env = {
 		'$1:'
 	)
 };
-const seed = Bun.spawn([process.execPath, 'scripts/seed.ts'], { env, stdout: 'inherit', stderr: 'inherit' });
+const seed = Bun.spawn([process.execPath, 'scripts/seed.ts'], {
+	env,
+	stdout: 'inherit',
+	stderr: 'inherit'
+});
 if (await seed.exited) throw new Error('Test seed failed.');
 const tests = Bun.spawn([process.execPath, 'test', 'tests/unit', 'tests/integration'], {
 	env,
